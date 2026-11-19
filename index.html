@@ -734,5 +734,67 @@ $('resetAll').onclick=()=>{
 
 fillCats();defaultDate();render(true);
 </script>
+  <script>
+/* ===== suara anak bebek imut ===== */
+let ACX=null;
+function squeak(t,p,vol){
+  const o=ACX.createOscillator(),o2=ACX.createOscillator(),
+        f=ACX.createBiquadFilter(),g=ACX.createGain(),
+        lfo=ACX.createOscillator(),lg=ACX.createGain();
+  o.type='triangle';o2.type='sine';
+  /* nada naik sebentar lalu turun: "kwe-ek" */
+  [o,o2].forEach((x,i)=>{
+    const m=i?2:1;
+    x.frequency.setValueAtTime(p*0.8*m,t);
+    x.frequency.exponentialRampToValueAtTime(p*1.25*m,t+0.035);
+    x.frequency.exponentialRampToValueAtTime(p*0.75*m,t+0.14);
+  });
+  /* getar halus supaya terdengar seperti piyik */
+  lfo.frequency.value=38;lg.gain.value=p*0.04;
+  lfo.connect(lg);lg.connect(o.frequency);
+  f.type='bandpass';f.frequency.value=2100;f.Q.value=1.1;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+  o.connect(f);o2.connect(f);f.connect(g);g.connect(ACX.destination);
+  o.start(t);o2.start(t);lfo.start(t);
+  o.stop(t+0.18);o2.stop(t+0.18);lfo.stop(t+0.18);
+}
+function kwekImut(duckEl){
+  try{
+    ACX=ACX||new (window.AudioContext||window.webkitAudioContext)();
+    if(ACX.state==='suspended')ACX.resume();
+    const idx=[...document.querySelectorAll('header .duck, #introDucks .duck')].indexOf(duckEl);
+    const p=(idx%2===1)?560:720;               /* bebek biru sedikit lebih rendah */
+    const t=ACX.currentTime+0.02;
+    squeak(t,p,0.22);
+    squeak(t+0.2,p*1.08,0.2);
+    squeak(t+0.4,p*1.18,0.24);
+  }catch(e){}
+  const svg=duckEl.querySelector('.dsvg');
+  [0,200,400].forEach(d=>setTimeout(()=>{
+    if(svg&&!RM)svg.animate(
+      [{transform:'scale(1,1)'},{transform:'translateY(-14px) scale(.95,1.07)',offset:.45},{transform:'scale(1,1)'}],
+      {duration:190,easing:'ease-out'});
+  },d));
+  const r=duckEl.getBoundingClientRect();
+  ['Kwek!','Kwek!','Kwek!'].forEach((w,i)=>setTimeout(()=>{
+    const s=document.createElement('span');
+    s.className='fx';s.textContent=w;
+    s.style.cssText=`left:${r.left+r.width/2+(i-1)*38}px;top:${r.top}px;font:700 1.25rem Fredoka,sans-serif;color:#ff5fa0;text-shadow:0 2px 0 #fff,0 0 8px #fff;z-index:300`;
+    document.body.appendChild(s);
+    s.animate([{transform:'translate(-50%,0) scale(.5)',opacity:1},{transform:'translate(-50%,-70px) scale(1.2)',opacity:0}],
+      {duration:900,easing:'ease-out'}).onfinish=()=>s.remove();
+  },i*200));
+}
+$('ducks').onclick=e=>{
+  const d=e.target.closest('.duck');if(!d)return;
+  say('Kwek! Kwek! Kwek! 🐥');
+  kwekImut(d);
+};
+$('introDucks').addEventListener('click',e=>{
+  const d=e.target.closest('.duck');if(d)kwekImut(d);
+});
+</script>
 </body>
 </html>
